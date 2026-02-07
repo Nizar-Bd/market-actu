@@ -2,9 +2,8 @@ name: Mise à jour Quotidienne
 
 on:
   schedule:
-    # 11:00 UTC = 12:00 en France (Hiver) / 13:00 (Eté)
+    # 11:00 UTC = 12:00 en France (Hiver)
     - cron: '0 11 * * *'
-  # Permet aussi de lancer le script manuellement depuis l'interface pour tester
   workflow_dispatch:
 
 permissions:
@@ -25,13 +24,32 @@ jobs:
       - name: Installation des librairies
         run: pip install -r requirements.txt
 
+      # Recupere les données de la veille
+      - name: Téléchargement de l'historique
+        uses: actions/download-artifact@v4
+        with:
+          name: market-history
+          path: .
+        continue-on-error: true
+
+      # Lancement du script
       - name: Lancement du script
         run: python newsletter_generator.py
 
+      # Nouvelles valeurs numériques pour demain
+      - name: Sauvegarde de l'historique pour demain
+        uses: actions/upload-artifact@v4
+        with:
+          name: market-history
+          path: market_history.json
+          retention-days: 2
+
+      # Publication sur GitHub Pages
       - name: Sauvegarde et Publication
         run: |
           git config --global user.name 'GitHub Action Bot'
           git config --global user.email 'action@github.com'
-          git add index.html
-          git commit -m "Mise à jour quotidienne des marchés" || exit 0
+          # On ajoute l'index ET le contenu du dossier archives
+          git add index.html archives/*.html
+          git commit -m "Mise à jour quotidienne et archivage" || exit 0
           git push
