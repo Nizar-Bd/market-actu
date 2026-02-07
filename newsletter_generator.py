@@ -1,12 +1,9 @@
-import json
-import os
-import shutil
+import json, os, shutil
 from bs4 import BeautifulSoup
 from curl_cffi import requests
 from datetime import datetime
 
-base_url = "https://tradingeconomics.com/"
-target_data = {
+TARGETS = {
     'commodity/': ["brent-crude-oil", "gold", "eu-natural-gas"],
     'united-states/': ["stock-market"],
     'france/': ["stock-market"],
@@ -15,116 +12,81 @@ target_data = {
     'euro-area/': ["stock-market"],
 }
 
-def get_summary(url):
-    response = requests.get(url, impersonate='chrome')
-    soup = BeautifulSoup(response.content, 'html.parser')
+def fetch_market_data(url):
+    res = requests.get(url, impersonate='chrome')
+    soup = BeautifulSoup(res.content, 'html.parser')
 
     summary = soup.find("h2", id="description").text.strip()
-    date_stream = soup.find("small", class_="te-stream-date").text.strip()
+    updated = soup.find("small", class_="te-stream-date").text.strip()
 
-    # Extraction de la valeur via le script JS
     scripts = soup.find_all("script", language="Javascript")
-    # On cherche le script qui contient TEChartsMeta
-    target_script = next(s.text for s in scripts if s.string and "TEChartsMeta" in s.string)
+    raw_js = next(s.text for s in scripts if s.string and "TEChartsMeta" in s.string)
+    val = float(raw_js.split('"value":')[1].split(',')[0])
 
-    value = float(target_script.split('"value":')[1].split(',')[0])
-    return summary, date_stream, value
+    return summary, updated, val
 
-def load_history():
-    if os.path.exists('market_history.json'):
-        with open('market_history.json', 'r') as f:
-            return json.load(f)
-    return {}
+def main():
+    history_file = 'market_history.json'
+    history = {}
+    if os.path.exists(history_file):
+        with open(history_file, 'r') as f:
+            history = json.load(f)
 
-def save_history(history):
-    with open('market_history.json', 'w') as f:
-        json.dump(history, f, indent=4)
-
-def get_all():
-    history = load_history()
-    new_history = {}
-    now = datetime.now().strftime('%d/%m/%Y')
-
-    # Début du HTML avec Pico.css
+    new_data = {}
     rows_html = ""
 
-    for cat in target_data:
-        for asset in target_data[cat]:
-            asset_id = f"{cat}{asset}"
-            url = base_url + asset_id
-
+    for path, assets in TARGETS.items():
+        for asset in assets:
+            url = f"{path}{asset}"
             try:
-                summary, date_stream, value = get_summary(url)
+                txt, date, val = fetch_market_data(f"https://tradingeconomics.com/{url}")
+                new_data[url] = val
 
-                # Calcul de la variation sur 24h (via JSON)
-                last_value = history.get(asset_id)
-                if last_value:
-                    diff = ((value - last_value) / last_value) * 100
+                # Variation logic
+                prev = history.get(url)
+                delta_html = '<span style="color:gray">N/A</span>'
+                if prev:
+                    diff = ((val - prev) / prev) * 100
                     color = "#2ecc71" if diff >= 0 else "#e74c3c"
-                    sign = "+" if diff >= 0 else ""
-                    variation_html = f'<span style="color: {color}; font-weight: bold;">{sign}{diff:.2f}%</span>'
-                else:
-                    variation_html = '<span style="color: gray;">N/A</span>'
+                    delta_html = f'<b style="color:{color}">{"+" if diff>0 else ""}{diff:.2f}%</b>'
 
-                new_history[asset_id] = value
-
-                # Construction de la ligne du tableau
                 rows_html += f"""
                 <article>
-                    <header><strong>{asset_id.upper()}</strong></header>
+                    <header><strong>{asset.replace("-", " ").upper()}</strong></header>
                     <div class="grid">
-                        <div><small>Value:</small><br><strong>{value}</strong></div>
-                        <div><small>Variation 24h:</small><br>{variation_html}</div>
-                        <div><small>Summary last update:</small><br><small>{date_stream}</small></div>
+                        <div><small>Price</small><br><strong>{val}</strong></div>
+                        <div><small>24h Var.</small><br>{delta_html}</div>
+                        <div><small>Updated</small><br><small>{date}</small></div>
                     </div>
-                    <p style="margin-top: 10px; font-size: 0.9em;">{summary}</p>
-                    <footer><a href="{url}" target="_blank">View on Trading Economics</a></footer>
-                </article>
-                """
+                    <p style="font-size: 0.85rem; margin: 10px 0;">{txt}</p>
+                    <footer><a href="https://tradingeconomics.com/{url}">View on Trading Economics</a></footer>
+                </article>"""
             except Exception as e:
-                print(f"Erreur sur {asset_id}: {e}")
+                print(f"Failed {url}: {e}")
 
-    # Template final propre avec Pico.css
-    full_html = f"""
-    <!DOCTYPE html>
-    <html lang="en" data-theme="dark">
+    # UI Template
+    now = datetime.now().strftime('%d %b %Y')
+    html = f"""<!DOCTYPE html><html lang="en" data-theme="dark">
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-        <title>Market Actu | {datetime.now().strftime('%d %b')}</title>
         <link rel="icon" href="https://fav.farm/📈" />
-        <style>
-            body {{ padding: 20px 0; }}
-            article {{ margin-bottom: 2rem; }}
-        </style>
+        <title>Markets | {now}</title>
     </head>
-    <body>
-        <main class="container">
-            <hgroup>
-                <h1>📊 Market Actu</h1>
-                <p>Last update : {now}</p>
-            </hgroup>
-            <hr>
-            {rows_html}
-        </main>
-    </body>
-    </html>
-    """
+    <body class="container" style="padding:20px 0">
+        <hgroup><h1>📈 Market Actu</h1><p>Snapshot: {now}</p></hgroup>
+        <hr>{rows_html}
+    </body></html>"""
 
-    # 1. Sauvegarde du fichier principal
+    # Files management
     with open("index.html", "w", encoding="utf-8") as f:
-        f.write(full_html)
+        f.write(html)
 
-    # 2. Archivage
-    if not os.path.exists("archives"):
-        os.makedirs("archives")
+    os.makedirs("archives", exist_ok=True)
+    shutil.copy("index.html", f"archives/review_{datetime.now().strftime('%Y_%m_%d')}.html")
 
-    archive_name = f"review_{datetime.now().strftime('%d_%m_%Y')}.html"
-    shutil.copy("index.html", os.path.join("archives", archive_name))
-
-    # 3. Sauvegarde de l'historique numérique
-    save_history(new_history)
+    with open(history_file, 'w') as f:
+        json.dump(new_data, f, indent=2)
 
 if __name__ == "__main__":
-    get_all()
+    main()
