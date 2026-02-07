@@ -1,7 +1,6 @@
 # 📊 Market Actu
 
-[![Daily Update](https://github.com/Nizar-Bd/market-actu/actions/workflows/main.yml/badge.svg)](https://github.com/Nizar-Bd/market-actu/actions/workflows/main.yml)
-[![Live Demo](https://img.shields.io/badge/demo-GitHub%20Pages-blue?style=flat-square&logo=github)](https://nizar-bd.github.io/market-actu/)
+[![Take a look - Live Demo](https://img.shields.io/badge/%E2%86%92%20Have%20a%20look-Live%20Dashboard-blueviolet?style=for-the-badge&logo=github)](https://nizar-bd.github.io/market-actu/)
 
 Automated data pipeline that scrapes, analyzes, and archives global market summaries daily at 12:00 PM CET.
 
