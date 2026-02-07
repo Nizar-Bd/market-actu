@@ -43,7 +43,7 @@ def save_history(history):
 def get_all():
     history = load_history()
     new_history = {}
-    now = datetime.now().strftime('%d/%m/%Y %H:%M')
+    now = datetime.now().strftime('%d/%m/%Y')
 
     # Début du HTML avec Pico.css
     rows_html = ""
@@ -73,12 +73,12 @@ def get_all():
                 <article>
                     <header><strong>{asset_id.upper()}</strong></header>
                     <div class="grid">
-                        <div><small>Valeur:</small><br><strong>{value}</strong></div>
-                        <div><small>Var. 24h:</small><br>{variation_html}</div>
-                        <div><small>Source:</small><br><small>{date_stream}</small></div>
+                        <div><small>Value:</small><br><strong>{value}</strong></div>
+                        <div><small>Variation 24h:</small><br>{variation_html}</div>
+                        <div><small>Summary last update:</small><br><small>{date_stream}</small></div>
                     </div>
                     <p style="margin-top: 10px; font-size: 0.9em;">{summary}</p>
-                    <footer><a href="{url}" target="_blank">Voir sur Trading Economics</a></footer>
+                    <footer><a href="{url}" target="_blank">View on Trading Economics</a></footer>
                 </article>
                 """
             except Exception as e:
@@ -87,12 +87,12 @@ def get_all():
     # Template final propre avec Pico.css
     full_html = f"""
     <!DOCTYPE html>
-    <html lang="fr" data-theme="dark">
+    <html lang="en" data-theme="dark">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-        <title>Market Review Daily</title>
+        <title>Market Actu</title>
         <style>
             body {{ padding: 20px 0; }}
             article {{ margin-bottom: 2rem; }}
@@ -102,8 +102,7 @@ def get_all():
         <main class="container">
             <hgroup>
                 <h1>📊 Market Actu</h1>
-                    <h4>⚙️ by Nizar-Bd</h4>
-                <p>Dernière mise à jour : {now}</p>
+                <p>Last update : {now}</p>
             </hgroup>
             <hr>
             {rows_html}
