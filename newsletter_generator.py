@@ -92,7 +92,8 @@ def get_all():
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-        <title>Market Actu</title>
+        <title>Market Actu | {datetime.now().strftime('%d %b')}</title>
+        <link rel="icon" href="https://fav.farm/📈" />
         <style>
             body {{ padding: 20px 0; }}
             article {{ margin-bottom: 2rem; }}
