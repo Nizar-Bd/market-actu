@@ -13,7 +13,7 @@ TARGETS = {
 }
 
 def fetch_market_data(url):
-    res = requests.get(url, impersonate='chrome')
+    res = requests.get(url, impersonate='chrome120')
     soup = BeautifulSoup(res.content, 'html.parser')
 
     summary = soup.find("h2", id="description").text.strip()
