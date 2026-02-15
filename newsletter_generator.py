@@ -13,15 +13,29 @@ TARGETS = {
 }
 
 def fetch_market_data(url):
-    res = requests.get(url, impersonate='chrome120')
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": "https://www.google.com/"
+        }
+
+    res = requests.get(url, impersonate='chrome120', headers=headers)
+
+    if res.status_code != 200:
+        raise Exception(f"HTTP Status {res.status_code}")
+
     soup = BeautifulSoup(res.content, 'html.parser')
 
-    summary = soup.find("h2", id="description").text.strip()
-    updated = soup.find("small", class_="te-stream-date").text.strip()
-
-    scripts = soup.find_all("script", language="Javascript")
-    raw_js = next(s.text for s in scripts if s.string and "TEChartsMeta" in s.string)
-    val = float(raw_js.split('"value":')[1].split(',')[0])
+    try:
+        summary = soup.find("h2", id="description").text.strip()
+        updated = soup.find("small", class_="te-stream-date").text.strip()
+        scripts = soup.find_all("script", language="Javascript")
+        raw_js = next(s.text for s in scripts if s.string and "TEChartsMeta" in s.string)
+        val = float(raw_js.split('"value":')[1].split(',')[0])
+    except Exception as e:
+        print(soup.title.text.strip() if soup.title else f"No title for {url}")
+        print(e)
 
     return summary, updated, val
 
