@@ -14,35 +14,55 @@ TARGETS = {
 }
 
 def fetch_market_data(url):
-
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15",
         "Accept-Language": "en-US,en;q=0.9",
         "Referer": "https://tradingeconomics.com/"
     }
 
-    res = requests.get(url, impersonate='safari15_5', headers=headers)
-    attempt = 0
+    max_retries = 3
+    res = None
+    for attempt in range(max_retries):
+        try:
+            res = requests.get(url, impersonate='safari15_5', headers=headers, timeout=20)
+            if res.status_code == 200:
+                break # good
 
-    if res.status_code != 200:
-        if res.status_code == 202:
-            attempt +=1
-            time.sleep(5*attempt)
-            res = requests.get(url, impersonate='safari15_5', headers=headers)
-        else :
-            raise Exception(f"HTTP Status {res.status_code}")
+            if res.status_code in [202, 403, 503]:
+                wait_time = 5 * (attempt + 1)
+                print(f"Status {res.status_code} on {url}. Attempt {attempt+1}/{max_retries} dans {wait_time}s...")
+                time.sleep(wait_time)
+            else:
+                break
+        except Exception as e:
+            print(f"Error: {e}")
+            time.sleep(5)
+
+    if not res or res.status_code != 200:
+        raise Exception(f"FAILED: HTTP {res.status_code if res else 'No Response'}")
 
     soup = BeautifulSoup(res.content, 'html.parser')
 
-    try:
-        summary = soup.find("h2", id="description").text.strip()
-        updated = soup.find("small", class_="te-stream-date").text.strip()
-        scripts = soup.find_all("script", language="Javascript")
-        raw_js = next(s.text for s in scripts if s.string and "TEChartsMeta" in s.string)
-        val = float(raw_js.split('"value":')[1].split(',')[0])
-    except Exception as e:
-        print(soup.title.text.strip() if soup.title else f"No title for {url}")
-        print(e)
+
+    summary_tag = soup.find("h2", id="description")
+    if summary_tag:
+        summary = summary_tag.text.strip()
+    else:
+        # Debug : Affiche le titre de la page reçue pour comprendre le blocage
+        page_title = soup.title.text.strip() if soup.title else "Sans titre"
+        # On définit une valeur par défaut pour éviter l'erreur "referenced before assignment"
+        summary = f"Description indisponible (Titre page: {page_title})"
+
+    # Date
+    date_tag = soup.find("small", class_="te-stream-date")
+    updated = date_tag.text.strip()
+
+    val = 0.0
+    scripts = soup.find_all("script", language="Javascript")
+    # On cherche le script contenant TEChartsMeta
+    target_script = next(s.text for s in scripts if s.string and "TEChartsMeta" in s.string)
+    val = float(target_script.split('"value":')[1].split(',')[0])
+
 
     return summary, updated, val
 

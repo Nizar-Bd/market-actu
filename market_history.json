@@ -1,10 +1,10 @@
 {
-  "commodity/brent-crude-oil": 67.75,
-  "commodity/gold": 5043.92,
-  "commodity/eu-natural-gas": 32.37,
-  "united-states/stock-market": 6836.17209,
-  "france/stock-market": 8311.74,
-  "germany/stock-market": 24914.88,
-  "united-kingdom/stock-market": 10446.35429,
-  "euro-area/stock-market": 5985.22998
+  "commodity/brent-crude-oil": 68.238,
+  "commodity/gold": 4986.01,
+  "commodity/eu-natural-gas": 30.9299,
+  "united-states/stock-market": 6839.52,
+  "france/stock-market": 8333.8,
+  "germany/stock-market": 24911.8,
+  "united-kingdom/stock-market": 10465.0,
+  "euro-area/stock-market": 6000.7
 }
