@@ -52,4 +52,5 @@ jobs:
           # On ajoute l'index ET le contenu du dossier archives
           git add index.html archives/*.html
           git commit -m "Mise à jour quotidienne et archivage" || exit 0
+          git pull --rebase origin main
           git push

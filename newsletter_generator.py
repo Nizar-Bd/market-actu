@@ -22,10 +22,12 @@ def fetch_market_data(url):
     }
 
     res = requests.get(url, impersonate='safari15_5', headers=headers)
+    attempt = 0
 
     if res.status_code != 200:
         if res.status_code == 202:
-            time.sleep(5)
+            attempt +=1
+            time.sleep(5*attempt)
             res = requests.get(url, impersonate='safari15_5', headers=headers)
         else :
             raise Exception(f"HTTP Status {res.status_code}")
@@ -41,7 +43,7 @@ def fetch_market_data(url):
     except Exception as e:
         print(soup.title.text.strip() if soup.title else f"No title for {url}")
         print(e)
-    
+
     return summary, updated, val
 
 def main():
