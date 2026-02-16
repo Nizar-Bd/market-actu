@@ -41,7 +41,7 @@ def fetch_market_data(url):
     except Exception as e:
         print(soup.title.text.strip() if soup.title else f"No title for {url}")
         print(e)
-
+    
     return summary, updated, val
 
 def main():
