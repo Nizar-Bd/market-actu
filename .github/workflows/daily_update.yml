@@ -49,8 +49,9 @@ jobs:
         run: |
           git config --global user.name 'GitHub Action Bot'
           git config --global user.email 'action@github.com'
-          # On ajoute l'index ET le contenu du dossier archives
+
+          git pull --rebase origin main
           git add index.html archives/*.html
           git commit -m "Mise à jour quotidienne et archivage" || exit 0
-          git pull --rebase origin main
+
           git push
