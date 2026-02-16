@@ -2,6 +2,7 @@ import json, os, shutil
 from bs4 import BeautifulSoup
 from curl_cffi import requests
 from datetime import datetime
+import time
 
 TARGETS = {
     'commodity/': ["brent-crude-oil", "gold", "eu-natural-gas"],
@@ -15,15 +16,19 @@ TARGETS = {
 def fetch_market_data(url):
 
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15",
         "Accept-Language": "en-US,en;q=0.9",
-        "Referer": "https://www.google.com/"
-        }
+        "Referer": "https://tradingeconomics.com/"
+    }
 
-    res = requests.get(url, impersonate='chrome120', headers=headers)
+    res = requests.get(url, impersonate='safari15_5', headers=headers)
 
     if res.status_code != 200:
-        raise Exception(f"HTTP Status {res.status_code}")
+        if res.status_code == 202:
+            time.sleep(5)
+            res = requests.get(url, impersonate='safari15_5', headers=headers)
+        else :
+            raise Exception(f"HTTP Status {res.status_code}")
 
     soup = BeautifulSoup(res.content, 'html.parser')
 
