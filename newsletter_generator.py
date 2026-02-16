@@ -4,14 +4,11 @@ from curl_cffi import requests
 from datetime import datetime
 import time
 
-TARGETS = {
-    'commodity/': ["brent-crude-oil", "gold", "eu-natural-gas"],
-    'united-states/': ["stock-market"],
-    'france/': ["stock-market"],
-    'germany/': ["stock-market"],
-    'united-kingdom/': ['stock-market'],
-    'euro-area/': ["stock-market"],
-}
+TARGETS = { "united-states/stock-market": "🇺🇸 S&P 500",
+            "france/stock-market":"🇫🇷 CAC 40",
+            "germany/stock-market":"🇩🇪 DAX 40",
+            "united-kingdom/stock-market": "🇬🇧 FTSE 100",
+            "euro-area/stock-market": "🇪🇺 Euro Stoxx 50" }
 
 def fetch_market_data(url):
     headers = {
@@ -20,51 +17,19 @@ def fetch_market_data(url):
         "Referer": "https://tradingeconomics.com/"
     }
 
-    max_retries = 3
-    res = None
-    for attempt in range(max_retries):
-        try:
-            res = requests.get(url, impersonate='safari15_5', headers=headers, timeout=20)
-            if res.status_code == 200:
-                break # good
-
-            if res.status_code in [202, 403, 503]:
-                wait_time = 5 * (attempt + 1)
-                print(f"Status {res.status_code} on {url}. Attempt {attempt+1}/{max_retries} dans {wait_time}s...")
-                time.sleep(wait_time)
-            else:
-                break
-        except Exception as e:
-            print(f"Error: {e}")
-            time.sleep(5)
-
-    if not res or res.status_code != 200:
-        raise Exception(f"FAILED: HTTP {res.status_code if res else 'No Response'}")
-
+    res = requests.get(url, impersonate='safari15_5', headers=headers, timeout=20)
     soup = BeautifulSoup(res.content, 'html.parser')
 
+    summary = soup.find("h2", id="description").text.strip()
 
-    summary_tag = soup.find("h2", id="description")
-    if summary_tag:
-        summary = summary_tag.text.strip()
-    else:
-        # Debug : Affiche le titre de la page reçue pour comprendre le blocage
-        page_title = soup.title.text.strip() if soup.title else "Sans titre"
-        # On définit une valeur par défaut pour éviter l'erreur "referenced before assignment"
-        summary = f"Description indisponible (Titre page: {page_title})"
-
-    # Date
-    date_tag = soup.find("small", class_="te-stream-date")
-    updated = date_tag.text.strip()
+    date = soup.find("small", class_="te-stream-date").text.strip()
 
     val = 0.0
     scripts = soup.find_all("script", language="Javascript")
-    # On cherche le script contenant TEChartsMeta
     target_script = next(s.text for s in scripts if s.string and "TEChartsMeta" in s.string)
     val = float(target_script.split('"value":')[1].split(',')[0])
 
-
-    return summary, updated, val
+    return summary, date, val
 
 def main():
     history_file = 'market_history.json'
@@ -76,34 +41,31 @@ def main():
     new_data = {}
     rows_html = ""
 
-    for path, assets in TARGETS.items():
-        for asset in assets:
-            url = f"{path}{asset}"
-            try:
-                txt, date, val = fetch_market_data(f"https://tradingeconomics.com/{url}")
-                new_data[url] = val
+    for path, name in TARGETS.items():
 
-                # Variation logic
-                prev = history.get(url)
-                delta_html = '<span style="color:gray">N/A</span>'
-                if prev:
-                    diff = ((val - prev) / prev) * 100
-                    color = "#2ecc71" if diff >= 0 else "#e74c3c"
-                    delta_html = f'<b style="color:{color}">{"+" if diff>0 else ""}{diff:.2f}%</b>'
-
-                rows_html += f"""
-                <article>
-                    <header><strong>{asset.replace("-", " ").upper()}</strong></header>
-                    <div class="grid">
-                        <div><small>Price</small><br><strong>{val}</strong></div>
-                        <div><small>24h Var.</small><br>{delta_html}</div>
-                        <div><small>Updated</small><br><small>{date}</small></div>
-                    </div>
-                    <p style="font-size: 0.85rem; margin: 10px 0;">{txt}</p>
-                    <footer><a href="https://tradingeconomics.com/{url}">View on Trading Economics</a></footer>
-                </article>"""
-            except Exception as e:
-                print(f"Failed {url}: {e}")
+        try:
+            txt, date, val = fetch_market_data(f"https://tradingeconomics.com/{path}")
+            new_data[path] = val
+            # Variation logic
+            prev = history.get(path)
+            delta_html = '<span style="color:gray">N/A</span>'
+            if prev:
+                diff = ((val - prev) / prev) * 100
+                color = "#2ecc71" if diff >= 0 else "#e74c3c"
+                delta_html = f'<b style="color:{color}">{"+" if diff>0 else ""}{diff:.2f}%</b>'
+            rows_html += f"""
+            <article>
+                <header><strong>{name}</strong></header>
+                <div class="grid">
+                    <div><small>Price</small><br><strong>{val}</strong></div>
+                    <div><small>24h Var.</small><br>{delta_html}</div>
+                    <div><small>Updated</small><br><small>{date}</small></div>
+                </div>
+                <p style="font-size: 0.85rem; margin: 10px 0;">{txt}</p>
+                <footer><a href="https://tradingeconomics.com/{path}">View on Trading Economics</a></footer>
+            </article>"""
+        except Exception as e:
+            print(f"Failed {path}: {e}")
 
     # UI Template
     now = datetime.now().strftime('%d %b %Y')
