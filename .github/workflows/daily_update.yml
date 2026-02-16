@@ -1,8 +1,7 @@
-name: Mise à jour Quotidienne
+name: Daily Update
 
 on:
   schedule:
-    # 11:00 UTC = 12:00 en France (Hiver)
     - cron: '0 11 * * *'
   workflow_dispatch:
 
@@ -24,7 +23,7 @@ jobs:
       - name: Installation des librairies
         run: pip install -r requirements.txt
 
-      # Recupere les données de la veille
+      # Get yesterday data
       - name: Téléchargement de l'historique
         uses: actions/download-artifact@v4
         with:
@@ -32,11 +31,11 @@ jobs:
           path: .
         continue-on-error: true
 
-      # Lancement du script
+      # Script Launch
       - name: Lancement du script
         run: python newsletter_generator.py
 
-      # Nouvelles valeurs numériques pour demain
+      # New values for tomorrow
       - name: Sauvegarde de l'historique pour demain
         uses: actions/upload-artifact@v4
         with:
@@ -44,7 +43,7 @@ jobs:
           path: market_history.json
           retention-days: 2
 
-      # Publication sur GitHub Pages
+      # Push to GitHub Pages
       - name: Sauvegarde et Publication
         run: |
           git config --global user.name 'GitHub Action Bot'
